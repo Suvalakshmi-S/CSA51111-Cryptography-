@@ -1,62 +1,59 @@
 #include <stdio.h>
 
-// Constants
-#define RB_CONSTANT 0x87
-
-// Function to generate subkeys K1 and K2
-void generateSubkeys(unsigned char* k1, unsigned char* k2) {
-    unsigned char initialBlock[16] = {0}; // All 0 bits
-    unsigned char intermediateResult[16] = {0};
+void generateSubkeys(unsigned char* key, int block_size) {
+    unsigned char first_subkey[block_size / 8];
+    unsigned char second_subkey[block_size / 8];
 	int i;
-    // Perform the block cipher operation (not implemented here)
+    // Apply the block cipher to a zero block
+    unsigned char zero_block[block_size / 8] ;
+    // In practice, you would use a real block cipher like AES here.
 
-    // Check the MSB of the intermediate result
-    if (intermediateResult[0] & 0x80) {
-        // MSB is 1, apply XOR with Rb
-        for (i = 0; i < 16; i++) {
-            intermediateResult[i] ^= RB_CONSTANT;
-        }
+    // Left shift by one bit
+    for (i = 0; i < block_size / 8; i++) {
+        first_subkey[i] = (zero_block[i] << 1) | (i + 1 < block_size / 8 ? (zero_block[i + 1] >> 7) : 0);
     }
 
-    // Left shift the intermediate result by 1 bit to get K1
-    for (i = 0; i < 15; i++) {
-        k1[i] = (intermediateResult[i] << 1) | (intermediateResult[i + 1] >> 7);
-    }
-    k1[15] = (intermediateResult[15] << 1);
-
-    // Check the MSB of the intermediate result (now K1)
-    if (k1[0] & 0x80) {
-        // MSB is 1, apply XOR with Rb
-        for ( i = 0; i < 16; i++) {
-            k1[i] ^= RB_CONSTANT;
-        }
+    // XOR with the appropriate constant
+    if (block_size == 64) {
+        first_subkey[block_size / 8 - 1] ^= 0x1B;
+    } else if (block_size == 128) {
+        first_subkey[block_size / 8 - 1] ^= 0x87;
     }
 
-    // Left shift K1 by 1 bit to get K2
-    for (i = 0; i < 15; i++) {
-        k2[i] = (k1[i] << 1) | (k1[i + 1] >> 7);
+    // Left shift the first subkey for the second subkey
+    for (i = 0; i < block_size / 8; i++) {
+        second_subkey[i] = (first_subkey[i] << 1) | (i + 1 < block_size / 8 ? (first_subkey[i + 1] >> 7) : 0);
     }
-    k2[15] = (k1[15] << 1);
+
+    // XOR with the appropriate constant
+    if (block_size == 64) {
+        second_subkey[block_size / 8 - 1] ^= 0x36;
+    } else if (block_size == 128) {
+        second_subkey[block_size / 8 - 1] ^= 0x1B;
+    }
+
+    printf("First Subkey:\n");
+    for (i = 0; i < block_size / 8; i++) {
+        printf("%02X ", first_subkey[i]);
+    }
+    printf("\n");
+
+    printf("Second Subkey:\n");
+    for (i = 0; i < block_size / 8; i++) {
+        printf("%02X ", second_subkey[i]);
+    }
+    printf("\n");
 }
 
 int main() {
-    unsigned char k1[16];
-    unsigned char k2[16];
-	int i;
-    generateSubkeys(k1, k2);
+    // Define the block size (64 or 128 bits)
+    int block_size = 128;
 
-    printf("K1: ");
-    for (i = 0; i < 16; i++) {
-        printf("%02X ", k1[i]);
-    }
-    printf("\n");
+    // Define the key (for a real implementation, use your actual key)
+    unsigned char key[] = {0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6};
 
-    printf("K2: ");
-    for (i = 0; i < 16; i++) {
-        printf("%02X ", k2[i]);
-    }
-    printf("\n");
+    // Generate subkeys
+    generateSubkeys(key, block_size);
 
     return 0;
 }
-
